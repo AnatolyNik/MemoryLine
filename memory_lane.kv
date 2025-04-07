@@ -2,11 +2,24 @@
 
 <MemoryButton>:
     font_size: 24
-    background_color: 0.8, 0.8, 0.8, 1 # Серый фон
-    color: 0, 0, 0, 1 # Черный текст
+    background_color: 0.8, 0.8, 0.8, 1  # Серый фон по умолчанию
+    color: 0, 0, 0, 1  # Черный текст
+    canvas.before:
+        Color:
+            rgba: self.background_color # Цвет фона
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]  # Закругленные углы
 
 <MemoryGrid>:
     cols: 4
-    rows: 4
-    spacing: 10
-    padding: 10
+    rows: 3
+    spacing: 15  # Увеличиваем расстояние
+    padding: 15  # Увеличиваем отступ
+    canvas.before:
+        Color:
+            rgba: 0.95, 0.95, 0.95, 1  # Светло-серый фон
+        Rectangle:
+            pos: self.pos
+            size: self.size
