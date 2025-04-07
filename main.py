@@ -1,5 +1,3 @@
-# Memory Line
-
 import kivy
 from kivy.app import App
 from kivy.uix.gridlayout import GridLayout
@@ -11,6 +9,7 @@ from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 import random
 from kivy.core.audio import SoundLoader
+from kivy.clock import Clock
 
 kivy.require('2.0.0')
 
@@ -29,10 +28,12 @@ class Card(Button):
     is_face_up = BooleanProperty(False)
     card_type = StringProperty("текст") # Тип карточки (текст, картинка, звук)
     front_value = StringProperty("") # Значение на лицевой стороне карточки
+    back_color = (0.8, 0.8, 0.8, 1)
+    front_color = (1, 1, 1, 1)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.background_color = (0.8, 0.8, 0.8, 1)  # Серый фон
+        self.background_color = self.back_color # Серый фон
         self.color = (0, 0, 0, 1)  # Черный текст
         self.font_size = 24
 
@@ -40,20 +41,29 @@ class Card(Button):
         self.flip_card()
 
     def flip_card(self):
-        self.is_face_up = not self.is_face_up
-        if self.is_face_up:
-            self.background_color = (1, 1, 1, 1) # Белый фон при открытии
+        if not self.is_face_up:
+            self.is_face_up = True
+            self.background_color = self.front_color # Белый фон при открытии
             self.text = str(self.front_value) # Отображаем значение
             if self.card_type == "звуки":
                 sound = SoundLoader.load(self.front_value)
                 if sound:
                     sound.play()
-
+            # Сообщаем MemoryGrid, что карточка открыта
+            self.parent.card_selected(self)
         else:
-            self.background_color = (0.8, 0.8, 0.8, 1)
-            self.text = "" # Скрываем значение
+            # Если карточка уже открыта, ничего не делаем
+            pass
+
+    def reset_card(self):
+        self.is_face_up = False
+        self.background_color = self.back_color
+        self.text = ""
 
 class MemoryGrid(GridLayout):
+    first_card = None
+    second_card = None
+
     def __init__(self, game_type="текст", **kwargs):
         super().__init__(**kwargs)
         self.cols = 4
@@ -83,6 +93,29 @@ class MemoryGrid(GridLayout):
             card = Card(card_id=str(i), card_type=self.game_type, front_value=str(front_value))
             self.cards.append(card)
             self.add_widget(card)
+
+    def card_selected(self, card):
+        """Обрабатывает выбор карточки."""
+        if self.first_card is None:
+            # Это первая открытая карточка
+            self.first_card = card
+        elif self.second_card is None:
+            # Это вторая открытая карточка
+            self.second_card = card
+            # Проверяем совпадение
+            if self.first_card.front_value == self.second_card.front_value:
+                # Карточки совпадают, оставляем их открытыми
+                self.first_card = None
+                self.second_card = None
+            else:
+                # Карточки не совпадают, переворачиваем их обратно через некоторое время
+                Clock.schedule_once(self.reset_cards, 1)  # Переворот через 1 секунду
+    def reset_cards(self, dt):
+        """Переворачивает карточки обратно."""
+        self.first_card.reset_card()
+        self.second_card.reset_card()
+        self.first_card = None
+        self.second_card = None
 
 class MenuScreen(Screen):
     def __init__(self, **kwargs):
